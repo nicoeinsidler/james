@@ -193,12 +193,31 @@ Usage: $0 <command> [options]
 
 Commands:
   install   install new modules, or if used without argument, install james.sh
+  update    update a module, or if used without argument, update james.sh
+  logs      show log file
   help      show this help message
+
+Logging:
+  All logs can be found in $LOGFILE. Log level $LOG_LEVEL is currently active.
 
 Examples:
   $0 install
   $0 status
 EOF
+}
+
+show_logs() {
+    # check if bat exists
+    if command -v bat >/dev/null 2>&1; then
+        BAT_CMD="bat"
+        log_info "using bat for display"
+    else
+        BAT_CMD="cat"
+        log_info "bat not found, falling back to cat"
+    fi
+
+    # Use the appropriate command
+    $BAT_CMD $LOGFILE
 }
 
 # Main script logic
@@ -217,6 +236,12 @@ main() {
     case "$command" in
         install)
             install "$@"
+            ;;
+        update)
+            update "$@"
+            ;;
+        logs)
+            show_logs "$@"
             ;;
         help|--help|-h)
             show_help
