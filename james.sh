@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# james.sh version 0.1
+
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,6 +35,8 @@ if type fish >/dev/null 2>&1; then
 else
     FISH_SHELL_INSTALLED=0
 fi
+
+log_debug "FISH_SHELL_INSTALLED=$FISH_SHELL_INSTALLED"
 
 datestamp() {
     # return date in YYYY-MM-DD (ISO 8601)
@@ -118,7 +122,7 @@ add_alias() {
     source $BASHRC_PATH
 
     # write alias also to fish config if fish is installed
-    if $FISH_SHELL_INSTALLED; then
+    if [ "$FISH_SHELL_INSTALLED" -eq 1 ]; then
         add_to_file "$FISH_SHELL_CONFIG" "$alias_string"
         log_info "added shorthand via appending $alias_string to $FISH_SHELL_CONFIG"
         source $FISH_SHELL_CONFIG
@@ -156,7 +160,7 @@ install_james() {
     log_info "ensured that $SCRIPT_INSTALLATION_PATH is in \$PATH"
 
     # if fish is installed, add it there as well
-    if $FISH_SHELL_INSTALLED; then
+    if [ "$FISH_SHELL_INSTALLED" -eq 1 ]; then
         fish -c "fish_add_path $SCRIPT_INSTALLATION_PATH"
         log_info "added $SCRIPT_INSTALLATION_PATH to fish path"
     fi
