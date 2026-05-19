@@ -167,22 +167,6 @@ install_james() {
     log_info "installed james"
 }
 
-# Define functions for each action
-start_service() {
-    echo "Starting service..."
-    # Your code here
-}
-
-stop_service() {
-    echo "Stopping service..."
-    # Your code here
-}
-
-show_status() {
-    echo "Checking status..."
-    # Your code here
-}
-
 show_help() {
     cat << EOF
 Usage: $0 <command> [options]
@@ -212,16 +196,6 @@ main() {
         install)
             install "$@"
             ;;
-        stop)
-            stop_service "$@"
-            ;;
-        status)
-            show_status "$@"
-            ;;
-        restart)
-            stop_service "$@"
-            start_service "$@"
-            ;;
         help|--help|-h)
             show_help
             ;;
@@ -233,5 +207,5 @@ main() {
     esac
 }
 
-# Run main function with all arguments
+# run main function with all arguments
 main "$@"
