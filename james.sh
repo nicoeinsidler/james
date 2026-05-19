@@ -9,7 +9,7 @@ SCRIPT_INSTALLATION_PATH="~/.local/bin"
 BASHRC_PATH="~/.bashrc"
 
 LOGFILE="./james.log"
-LOG_LEVEL="${LOG_LEVEL:-INFO}"
+LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 
 log() {
     local level=$1
@@ -62,6 +62,9 @@ are_same_file() {
 add_to_file() {
     # check if two arguments are passed in, otherwise fail
     if [ $# -ne 2 ]; then
+        log_debug "1=$1"
+        log_debug "2=$2"
+        log_debug "#=$#"
         log_error "two arguments must be provided to add_to_file: first path to file, second content to write to file"
         return 1
     fi
@@ -69,6 +72,8 @@ add_to_file() {
     # first argument is the file to append, second the content to append
     local file="$1"
     local content="$2"
+    log_debug "file=$file"
+    log_debug "content=$content"
 
     # get the directory part of the path
     file_dir=$(dirname "$file")
@@ -83,7 +88,7 @@ add_to_file() {
     fi
 
     # check if the line we want to add doesn't already exist
-    if ! grep -q $content $file; then
+    if ! grep -qF "$content" "$file"; then
         echo $content >> $file
     fi
 }
@@ -98,11 +103,15 @@ add_alias() {
     # first argument is the alias name, second is the command
     local alias="$1"
     local command="$2"
+    log_debug "alias=$alias"
+    log_debug "command=$command"
 
     # add alias line to bashrc
     local alias_string="alias $alias='$command'"
-    add_to_file $BASHRC_PATH "# $(comment_string)"
-    add_to_file $BASHRC_PATH $alias_string
+    #add_to_file $BASHRC_PATH "# $(comment_string)"
+    log_debug "BASHRC_PATH=$BASHRC_PATH"
+    log_debug "alias_string=$alias_string"
+    add_to_file $BASHRC_PATH "$alias_string"
     log_info "added shorthand via appending $alias_string to $BASHRC_PATH"
 
     # source bashrc
@@ -110,7 +119,7 @@ add_alias() {
 
     # write alias also to fish config if fish is installed
     if $FISH_SHELL_INSTALLED; then
-        add_to_file $FISH_SHELL_CONFIG "# $(comment_string)"
+        #add_to_file $FISH_SHELL_CONFIG "# $(comment_string)"
         add_to_file $FISH_SHELL_CONFIG $alias_string
         log_info "added shorthand via appending $alias_string to $FISH_SHELL_CONFIG"
         source $FISH_SHELL_CONFIG
@@ -144,7 +153,7 @@ install_james() {
 
     # make sure installation path is in $PATH
     local export_string="export PATH=$SCRIPT_INSTALLATION_PATH:\$PATH"
-    add_to_file $BASHRC_PATH $export_string
+    add_to_file $BASHRC_PATH "$export_string"
     log_info "ensured that $SCRIPT_INSTALLATION_PATH is in \$PATH"
 
     # if fish is installed, add it there as well
