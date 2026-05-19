@@ -89,6 +89,7 @@ add_to_file() {
 
     # check if the line we want to add doesn't already exist
     if ! grep -qF "$content" "$file"; then
+        echo "# $(comment_string)" >> $file
         echo $content >> $file
     fi
 }
@@ -108,10 +109,9 @@ add_alias() {
 
     # add alias line to bashrc
     local alias_string="alias $alias='$command'"
-    #add_to_file $BASHRC_PATH "# $(comment_string)"
     log_debug "BASHRC_PATH=$BASHRC_PATH"
     log_debug "alias_string=$alias_string"
-    add_to_file $BASHRC_PATH "$alias_string"
+    add_to_file "$BASHRC_PATH" "$alias_string"
     log_info "added shorthand via appending $alias_string to $BASHRC_PATH"
 
     # source bashrc
@@ -119,8 +119,7 @@ add_alias() {
 
     # write alias also to fish config if fish is installed
     if $FISH_SHELL_INSTALLED; then
-        #add_to_file $FISH_SHELL_CONFIG "# $(comment_string)"
-        add_to_file $FISH_SHELL_CONFIG $alias_string
+        add_to_file "$FISH_SHELL_CONFIG" "$alias_string"
         log_info "added shorthand via appending $alias_string to $FISH_SHELL_CONFIG"
         source $FISH_SHELL_CONFIG
     fi
@@ -153,7 +152,7 @@ install_james() {
 
     # make sure installation path is in $PATH
     local export_string="export PATH=$SCRIPT_INSTALLATION_PATH:\$PATH"
-    add_to_file $BASHRC_PATH "$export_string"
+    add_to_file "$BASHRC_PATH" "$export_string"
     log_info "ensured that $SCRIPT_INSTALLATION_PATH is in \$PATH"
 
     # if fish is installed, add it there as well
