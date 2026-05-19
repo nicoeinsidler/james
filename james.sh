@@ -6,12 +6,12 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
-SCRIPT_INSTALLATION_PATH="~/.local/bin"
+SCRIPT_INSTALLATION_PATH="$HOME/.local/bin"
 
-BASHRC_PATH="~/.bashrc"
+BASHRC_PATH="$HOME/.bashrc"
 
 LOGFILE="./james.log"
-LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
 
 log() {
     local level=$1
@@ -31,7 +31,7 @@ log_debug() { [[ "$LOG_LEVEL" == "DEBUG" ]] && log "DEBUG" "$@"; }
 if type fish >/dev/null 2>&1; then
     log_debug "detected fish shell"
     FISH_SHELL_INSTALLED=1
-    FISH_SHELL_CONFIG="~/.config/fish/config.fish"
+    FISH_SHELL_CONFIG="$HOME/.config/fish/config.fish"
 else
     FISH_SHELL_INSTALLED=0
 fi
@@ -171,6 +171,22 @@ install_james() {
     log_info "installed james"
 }
 
+
+update() {
+    # if first argument exists
+    if [ -n "$1" ]; then
+        log_info "updating $1"
+    # if just james.sh update has been run
+    else
+        log_info "updating james.sh"
+        update_james
+    fi
+}
+
+update_james() {
+    log_info "not implemented yet"
+}
+
 show_help() {
     cat << EOF
 Usage: $0 <command> [options]
@@ -192,7 +208,9 @@ main() {
     # shift arguments given by 1 and make sure it can't fail
     shift || true
 
-    if ! are_same_file $SCRIPT_PATH $SCRIPT_INSTALLATION_PATH; then
+    log_debug "SCRIPT_DIR=$SCRIPT_DIR"
+    log_debug "SCRIPT_INSTALLATION_PATH=$SCRIPT_INSTALLATION_PATH"
+    if ! are_same_file $SCRIPT_DIR $SCRIPT_INSTALLATION_PATH; then
         installation_prompt
     fi
 
