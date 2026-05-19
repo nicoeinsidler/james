@@ -28,7 +28,7 @@ log_error() { log "ERROR" "$@"; }
 log_debug() { [[ "$LOG_LEVEL" == "DEBUG" ]] && log "DEBUG" "$@"; }
 
 # detect if fish is installed on the system
-if type fish >/dev/null 2>&1; then
+if command -v fish >/dev/null 2>&1; then
     log_debug "detected fish shell"
     FISH_SHELL_INSTALLED=1
     FISH_SHELL_CONFIG="$HOME/.config/fish/config.fish"
