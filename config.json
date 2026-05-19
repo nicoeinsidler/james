@@ -1,0 +1,17 @@
+{
+  "projects": [
+    {
+      "slug": "james",
+      "name": "James",
+      "directory": "$HOME/Projects/james",
+      "git": "https://github.com/nicoeinsidler/james"
+    },
+    {
+      "slug": "stock-market-viewer",
+      "name": "Stock Market Viewer Project",
+      "directory": "$HOME/Projects/stock-market-viewer/"
+    }
+  ],
+  "sub_folder": "meeting-minutes",
+  "editor": "/usr/bin/vim"
+}
