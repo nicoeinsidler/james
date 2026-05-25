@@ -126,7 +126,24 @@ are_same_file() {
     fi
 }
 
+add_json_object() {
+    # adds a JSON object to the provided root level key name; if the key doesn't exist, it will create an array, if it exists, but is not an array, it will fail.
+    _file="$1"
+    _node="$2" # root-level key, e.g. "shortcuts"
+    _obj="$3" # valid JSON object string, e.g. '{"name":"x"}'
+    _tmp="${_file}.tmp.$$"
 
+    jq --arg node "$_node" \
+       --argjson obj "$_obj" '
+       if has($node) and (.[$node] | type) != "array" then
+           "Error: \($node) is not an array" | halt_error(1)
+       else
+           .[$node] //= [] | .[$node] += [$obj]
+       end
+    ' "$_file" > "$_tmp" || { rm -f "$_tmp"; return 1; }
+
+    mv "$_tmp" "$_file"
+}
 
 add_alias() {
     # check if two arguments are passed in, otherwise fail
