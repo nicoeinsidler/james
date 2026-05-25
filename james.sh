@@ -338,6 +338,57 @@ show_config() {
     show_text_file $JAMES_CONFIG
 }
 
+show_help_shortcut() {
+    cat << EOF
+Usage: $0 shortcut <command> [options]
+
+Commands:
+  list      lists all currently installed shortcuts
+  new       create new shortcut
+  rm        remove a shortcut
+  help      show this help message
+EOF
+}
+
+shortcut_list() {
+    log_info "not implemented yet"
+}
+
+shortcut_new() {
+    log_info "not implemented yet"
+}
+
+shortcut_rm() {
+    log_info "not implemented yet"
+}
+
+shortcut() {
+    # default to help command
+    local subcommand="${1:-list}"
+    # shift arguments given by 1 and make sure it can't fail
+    shift || true
+
+    case "$subcommand" in
+        list)
+            shortcut_list "$@"
+            ;;
+        new)
+            shortcut_new "$@"
+            ;;
+        rm)
+            shortcut_rm "$@"
+            ;;
+        help|--help|-h)
+            show_help_shortcut
+            ;;
+        *)
+            log_error "Unknown command '$subcommand'" >&2
+            show_help_shortcut >&2
+            exit 1
+            ;;
+    esac
+}
+
 # Main script logic
 main() {
     # default to help command
@@ -363,6 +414,9 @@ main() {
             ;;
         config)
             show_config "$@"
+            ;;
+        shortcut)
+            shortcut "$@"
             ;;
         help|--help|-h)
             show_help
