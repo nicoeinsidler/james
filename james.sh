@@ -302,6 +302,7 @@ Usage: $0 <command> [options]
 Commands:
   install   install new modules, or if used without argument, install james.sh
   update    update a module, or if used without argument, update james.sh
+  config    show config file
   logs      show log file
   help      show this help message
 
@@ -314,7 +315,9 @@ Examples:
 EOF
 }
 
-show_logs() {
+show_text_file() {
+    _file="$1"
+
     # check if bat exists
     if command -v bat >/dev/null 2>&1; then
         BAT_CMD="bat"
@@ -323,9 +326,16 @@ show_logs() {
         BAT_CMD="cat"
         log_info "bat not found, falling back to cat"
     fi
-
     # Use the appropriate command
-    $BAT_CMD $LOGFILE
+    $BAT_CMD $_file
+}
+
+show_logs() {
+    show_text_file $LOGFILE
+}
+
+show_config() {
+    show_text_file $JAMES_CONFIG
 }
 
 # Main script logic
@@ -350,6 +360,9 @@ main() {
             ;;
         logs)
             show_logs "$@"
+            ;;
+        config)
+            show_config "$@"
             ;;
         help|--help|-h)
             show_help
