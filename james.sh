@@ -4,14 +4,8 @@
 
 set -o pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
-SCRIPT_INSTALLATION_PATH="$HOME/.local/bin"
-
-BASHRC_PATH="$HOME/.bashrc"
-
 LOGFILE="./james.log"
-LOG_LEVEL="${LOG_LEVEL:-INFO}"
+LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 
 log() {
     local level=$1
@@ -27,40 +21,10 @@ log_warn() { log "WARNING" "$@"; }
 log_error() { log "ERROR" "$@"; }
 log_debug() { [[ "$LOG_LEVEL" == "DEBUG" ]] && log "DEBUG" "$@"; }
 
-# detect if fish is installed on the system
-if command -v fish >/dev/null 2>&1; then
-    log_debug "detected fish shell"
-    FISH_SHELL_INSTALLED=1
-    FISH_SHELL_CONFIG="$HOME/.config/fish/config.fish"
-else
-    FISH_SHELL_INSTALLED=0
-fi
-
-log_debug "FISH_SHELL_INSTALLED=$FISH_SHELL_INSTALLED"
-
-datestamp() {
-    # return date in YYYY-MM-DD (ISO 8601)
-    date +%F
-}
-
-comment_string() {
-    echo "$(datestamp): automatically added by james.sh"
-}
-
-are_same_file() {
-    # Check if both files exist
-    [ -e "$1" ] && [ -e "$2" ] || return 1
-
-    # Try stat with Linux format first
-    if stat -c "%d:%i" "$1" >/dev/null 2>&1; then
-        [ "$(stat -c "%d:%i" "$1")" = "$(stat -c "%d:%i" "$2")" ]
-    # Try stat with BSD/macOS format
-    elif stat -f "%d:%i" "$1" >/dev/null 2>&1; then
-        [ "$(stat -f "%d:%i" "$1")" = "$(stat -f "%d:%i" "$2")" ]
-    else
-        return 1
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+SCRIPT_INSTALLATION_PATH="$HOME/.local/bin"
+JAMES_CONFIG="$SCRIPT_INSTALLATION_PATH/james-config.json"
 
 # safely add line to file
 add_to_file() {
@@ -97,6 +61,72 @@ add_to_file() {
         echo $content >> $file
     fi
 }
+init_config() {
+    # check if config file exists
+    if [ ! -f "$JAMES_CONFIG" ]; then
+        log_debug "pwd=$(pwd)"
+        if [ -f "$(pwd)/config.json" ]; then
+            log_info "copied over config from $(pwd)/config.json --> $JAMES_CONFIG"
+            cp "$(pwd)/config.json" "$JAMES_CONFIG"
+        else
+            add_to_file "$JAMES_CONFIG" "{}"
+        fi
+    fi
+}
+# make sure config exists
+init_config
+
+OS_TYPE=$(uname -s)
+
+
+
+log_debug "SCRIPT_DIR=$SCRIPT_DIR"
+log_debug "SCRIPT_PATH=$SCRIPT_PATH"
+
+BASHRC_PATH="$HOME/.bashrc"
+
+TODO_TXT_CONFIG_PATH=$(jq -r '.todo_txt_config' "$JAMES_CONFIG" | envsubst)
+
+
+log_debug "JAMES_CONFIG=$JAMES_CONFIG"
+log_debug "TODO_TXT_CONFIG_PATH=$TODO_TXT_CONFIG_PATH"
+
+# detect if fish is installed on the system
+if command -v fish >/dev/null 2>&1; then
+    log_debug "detected fish shell"
+    FISH_SHELL_INSTALLED=1
+    FISH_SHELL_CONFIG="$HOME/.config/fish/config.fish"
+else
+    FISH_SHELL_INSTALLED=0
+fi
+
+log_debug "FISH_SHELL_INSTALLED=$FISH_SHELL_INSTALLED"
+
+datestamp() {
+    # return date in YYYY-MM-DD (ISO 8601)
+    date +%F
+}
+
+comment_string() {
+    echo "$(datestamp): automatically added by james.sh"
+}
+
+are_same_file() {
+    # Check if both files exist
+    [ -e "$1" ] && [ -e "$2" ] || return 1
+
+    # Try stat with Linux format first
+    if stat -c "%d:%i" "$1" >/dev/null 2>&1; then
+        [ "$(stat -c "%d:%i" "$1")" = "$(stat -c "%d:%i" "$2")" ]
+    # Try stat with BSD/macOS format
+    elif stat -f "%d:%i" "$1" >/dev/null 2>&1; then
+        [ "$(stat -f "%d:%i" "$1")" = "$(stat -f "%d:%i" "$2")" ]
+    else
+        return 1
+    fi
+}
+
+
 
 add_alias() {
     # check if two arguments are passed in, otherwise fail
@@ -171,6 +201,67 @@ install_james() {
     log_info "installed james"
 }
 
+check_if_git_is_installed() {
+    # check if git is installed
+    if ![ command -v git >/dev/null 2>&1 ]; then
+        log_warn "git is not installed on your system"
+    fi
+}
+
+dependency_git() {
+    # check if git is installed
+    if ![ command -v git >/dev/null 2>&1 ]; then
+        # go through different OS types
+        case "$OS_TYPE" in
+            Darwin*)
+                log_info "detected macOS"
+                log_error "Git needs to be installed through the command line XCode thingy, aborting therefore. Please try to run git from the CLI."
+                return 1
+                ;;
+            Linux*)
+                log_info "detected Linux"
+                log_info "trying to install git via apt"
+                # TODO: add Fedora etc
+                apt install git
+                ;;
+            *)
+                log_error "unsupported OS: $OS_TYPE"
+                log_error "dependency git was not found"
+                ;;
+        esac
+    fi
+}
+
+dependency_brew() {
+    # check if brew is installed
+    if ![ command -v brew >/dev/null 2>&1 ]; then
+        # install brew
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+}
+
+install_todo_txt_macos() {
+    dependency_brew
+    brew install todo-txt
+    cp -n "$(brew --prefix)/opt/todo-txt/todo.cfg" "$HOME/.todo.cfg"
+}
+
+install_todo_txt() {
+    # go through different OS types
+    case "$OS_TYPE" in
+        Darwin*)
+            log_info "detected macOS"
+            install_todo_txt_macos
+            ;;
+        Linux*)
+            log_info "detected Linux"
+            install_todo_txt_linux
+            ;;
+        *)
+            log_error "unsupported OS: $OS_TYPE"
+            ;;
+    esac
+}
 
 update() {
     # if first argument exists

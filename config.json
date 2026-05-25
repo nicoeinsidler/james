@@ -13,5 +13,6 @@
     }
   ],
   "sub_folder": "meeting-minutes",
-  "editor": "/usr/bin/vim"
+  "editor": "/usr/bin/vim",
+  "todo_txt_config": "$HOME/.todo.cfg"
 }
