@@ -218,6 +218,23 @@ install_james() {
     log_info "installed james"
 }
 
+set_environment_var() {
+    # make name all uppercase
+    local name=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+    local value="$2"
+    # add export line to bashrc
+    add_to_file "$BASHRC_PATH" "export $var=$value"
+    # source bashrc so that it takes effect
+    source "$BASHRC_PATH"
+
+    # if fish is installed, create var there too
+    if [ "$FISH_SHELL_INSTALLED" -eq 1 ]; then
+        fish -c "set -Ux $name $value"
+    fi
+
+    log_info "set environment var: $name=$value"
+}
+
 check_if_git_is_installed() {
     # check if git is installed
     if ![ command -v git >/dev/null 2>&1 ]; then
@@ -313,6 +330,59 @@ Examples:
   $0 install
   $0 status
 EOF
+}
+
+show_help_debug() {
+    cat << EOF
+Usage: $0 debug LEVEL
+
+LEVEL:
+  DEBUG     show all logs
+  INFO      only report up to info level
+  WARNING   report everything up to warning level
+  ERROR     only report errors
+
+Logging:
+  All logs can be found in $LOGFILE. Log level $LOG_LEVEL is currently active.
+EOF
+}
+
+change_log_level() {
+    local level_new="${1:-DEBUG}"
+    local level_old="$LOG_LEVEL"
+
+    set_environment_var "LOG_LEVEL" $level_new
+    log_info "changed log level from $level_old --> $level_new"
+}
+
+debug() {
+    # default to help command
+    local level="${1:-list}"
+    # shift arguments given by 1 and make sure it can't fail
+    shift || true
+
+    case "$level" in
+        DEBUG|debug)
+            change_log_level "DEBUG"
+            ;;
+        INFO|info)
+            change_log_level "INFO"
+            ;;
+        WARNING|warning)
+            change_log_level "WARNING"
+            ;;
+        ERROR|error)
+            change_log_level "ERROR"
+            ;;
+        help|list)
+            show_help_debug
+            ;;
+        *)
+            log_error "Unknown level '$level'" >&2
+            show_help_debug >&2
+            exit 1
+            ;;
+    esac
 }
 
 show_text_file() {
@@ -417,6 +487,9 @@ main() {
             ;;
         shortcut)
             shortcut "$@"
+            ;;
+        debug)
+            debug "$@"
             ;;
         help|--help|-h)
             show_help
