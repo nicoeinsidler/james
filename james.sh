@@ -222,8 +222,12 @@ set_environment_var() {
     # make name all uppercase
     local name=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
     local value="$2"
+
+    log_debug "name=$name"
+    log_debug "value=$value"
+
     # add export line to bashrc
-    add_to_file "$BASHRC_PATH" "export $var=$value"
+    add_to_file "$BASHRC_PATH" "export $name=$value"
     # source bashrc so that it takes effect
     source "$BASHRC_PATH"
 
