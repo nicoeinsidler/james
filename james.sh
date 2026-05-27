@@ -278,6 +278,31 @@ dependency_brew() {
     fi
 }
 
+dependency_jq() {
+    dependency_brew
+
+    # check if jq is installed
+    if ! command -v jq >/dev/null 2>&1; then
+        case "$OS_TYPE" in
+            Darwin*)
+                log_info "detected macOS"
+                log_info "trying to install jq via brew"
+                brew install jq
+                ;;
+            Linux*)
+                log_info "detected Linux"
+                log_info "trying to install jq via apt"
+                # TODO: add Fedora etc
+                apt install jq
+                ;;
+            *)
+                log_error "unsupported OS: $OS_TYPE"
+                log_error "dependency git was not found"
+                ;;
+        esac
+    fi
+}
+
 install_todo_txt_macos() {
     dependency_brew
     brew install todo-txt
@@ -463,6 +488,103 @@ shortcut() {
     esac
 }
 
+show_help_list() {
+    cat << EOF
+Usage: $0 list <command> [options]
+
+Lists entities within james.
+
+Commands:
+  projects      lists all projects
+  shortcuts     lists all shortcuts, same as james shortcuts list
+  help          show this help message
+EOF
+}
+
+list_all_projects() {
+    # check if config file exists
+    if [ ! -f "$JAMES_CONFIG" ]; then
+        log_error "Config file not found: $JAMES_CONFIG"
+        return 1
+    fi
+
+    dependency_jq
+
+    # extract project data using jq (slug, name, directory, git or N/A)
+    local projects
+    projects=$(jq -r '.projects[] | [.slug, .name, .directory, (.git // "N/A")] | @tsv' "$JAMES_CONFIG")
+
+    if [ -z "$projects" ]; then
+        log_info "No projects found in config"
+        return 0
+    fi
+
+    # define column headers
+    local -a headers=("Slug" "Name" "Directory" "Git")
+
+    # initialize column widths with header lengths
+    local -a widths=()
+    for i in "${!headers[@]}"; do
+        widths[$i]=${#headers[$i]}
+    done
+
+    # calculate max width for each column
+    while IFS=$'\t' read -r slug name directory git; do
+        [ ${#slug} -gt ${widths[0]} ] && widths[0]=${#slug}
+        [ ${#name} -gt ${widths[1]} ] && widths[1]=${#name}
+        [ ${#directory} -gt ${widths[2]} ] && widths[2]=${#directory}
+        [ ${#git} -gt ${widths[3]} ] && widths[3]=${#git}
+    done <<< "$projects"
+
+    # TODO: create its own pretty table printing function
+
+    # print formatted table
+    printf "\n"
+    printf "%-${widths[0]}s  %-${widths[1]}s  %-${widths[2]}s  %-${widths[3]}s\n" "${headers[@]}"
+
+    # print separator line
+    local separator=""
+    for i in "${!widths[@]}"; do
+        separator+=$(printf '%0.s─' $(seq 1 ${widths[$i]}))
+        if [ $i -lt $((${#widths[@]} - 1)) ]; then
+            separator+="  "
+        fi
+    done
+    printf "%s\n" "$separator"
+
+    # print each project row
+    while IFS=$'\t' read -r slug name directory git; do
+        printf "%-${widths[0]}s  %-${widths[1]}s  %-${widths[2]}s  %-${widths[3]}s\n" "$slug" "$name" "$directory" "$git"
+    done <<< "$projects"
+    printf "\n"
+}
+
+
+
+list() {
+    # default to help command
+    local subcommand="${1:-projects}"
+    # shift arguments given by 1 and make sure it can't fail
+    shift || true
+
+    case "$subcommand" in
+        projects|p)
+            list_all_projects "$@"
+            ;;
+        shortcuts|s)
+            shortcut_list "$@"
+            ;;
+        help|--help|-h)
+            show_help_list
+            ;;
+        *)
+            log_error "Unknown command '$subcommand'" >&2
+            show_help_list >&2
+            exit 1
+            ;;
+    esac
+}
+
 # Main script logic
 main() {
     # default to help command
@@ -494,6 +616,9 @@ main() {
             ;;
         debug)
             debug "$@"
+            ;;
+        list|ls)
+            list "$@"
             ;;
         help|--help|-h)
             show_help
