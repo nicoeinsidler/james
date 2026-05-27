@@ -346,6 +346,7 @@ show_help() {
 Usage: $0 <command> [options]
 
 Commands:
+  list      list james entities
   install   install new modules, or if used without argument, install james.sh
   update    update a module, or if used without argument, update james.sh
   config    show config file
